@@ -3,13 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Player : MonoBehaviour
+public class Player : Character
 {
     [SerializeField] private Rigidbody2D rb;
-    [SerializeField] private Animator anim;
+
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private float speed = 5;
     [SerializeField] private float jumpForce = 350;
+
+    [SerializeField] private Kunai kunaiPrefab;
+    [SerializeField] private Transform throwPoint;
+    [SerializeField] private GameObject attackArea;
 
     private bool isGrounded = true;
     private bool isJumping = false;
@@ -18,19 +22,9 @@ public class Player : MonoBehaviour
 
     private float horizontal;
 
-    private string currentAnimName;
-
     private int coin = 0;
 
     private Vector3 savePoint;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        SavePoint();
-
-        OnInit();
-    }
 
     // Update is called once per frame
     void FixedUpdate()
@@ -97,14 +91,31 @@ public class Player : MonoBehaviour
         }
     }
 
-    public void OnInit()
+    public override void OnInit()
     {
+        base.OnInit();
+
         isDeath = false;
         isAttack = false;
 
         transform.position = savePoint;
 
         ChangeAnim("Idle");
+        DeActiveAttack();
+
+        SavePoint();
+    }
+
+    public override void OnDespawn()
+    {
+        base.OnDespawn();
+        OnInit();
+    }
+
+    protected override void OnDeath()
+    {
+        base.OnDeath();
+
     }
 
     private bool CheckGrounded()
@@ -130,6 +141,8 @@ public class Player : MonoBehaviour
         ChangeAnim("Attack");
         isAttack = true;
         Invoke(nameof(ResetAttack), 0.5f);
+        ActiveAttack();
+        Invoke(nameof(DeActiveAttack), 0.5f);
     }
 
     private void Throw()
@@ -137,6 +150,8 @@ public class Player : MonoBehaviour
         ChangeAnim("Throw");
         isAttack = true;
         Invoke(nameof(ResetAttack), 0.5f);
+
+        Instantiate(kunaiPrefab, throwPoint.position, throwPoint.rotation);
     }
 
     private void ResetAttack()
@@ -152,19 +167,21 @@ public class Player : MonoBehaviour
         rb.AddForce(jumpForce * Vector2.up);
     }
 
-    private void ChangeAnim(string aniName)
-    {
-        if (currentAnimName != aniName)
-        {
-            anim.ResetTrigger(aniName);
-            currentAnimName = aniName;
-            anim.SetTrigger(currentAnimName);
-        }
-    }
+
 
     internal void SavePoint()
     {
         savePoint = transform.position;
+    }
+
+    private void ActiveAttack()
+    {
+        attackArea.SetActive(true);
+    }
+
+    private void DeActiveAttack()
+    {
+        attackArea.SetActive(false);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
